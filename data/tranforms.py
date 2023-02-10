@@ -73,12 +73,29 @@ class TransformTrain(object):
             transforms.RandomResizedCrop(crop_size),
             transforms.RandomHorizontalFlip(),
             RandAugmentMC(n=2, m=10)])
+        # self.normalize = transforms.Compose([
+        #     transforms.ToTensor(),
+        #     transforms.Normalize(mean=mean, std=std)])
+
         self.normalize = transforms.Compose([
+            transforms.ToTensor()])
+        
+        self.dummy = transforms.Compose([
+            ResizeImage(resize_size),
+            transforms.ToTensor()])
+        
+        self.vit_transform = transforms.Compose([
+            ResizeImage(crop_size),
             transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)])
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
+        
+        self.orig_transform = transforms.Compose([
+            ResizeImage(crop_size),
+            transforms.ToTensor()])
 
     def __call__(self, x):
-        return [self.normalize(self.strong(x)) for _ in range(2)]
+        return [self.normalize(self.strong(x)) for _ in range(2)] + [self.vit_transform(x)] + [self.orig_transform(x)]
+        # return [self. dummy(x) for _ in range(2)]
 		
 class TransformTrainori(object):
     def __init__(self,resize_size=256, crop_size=224, mean=imagenet_mean, std=imagenet_std):
@@ -112,6 +129,9 @@ class TransformTrainCifar(object):
 
 
 def TransformTest(resize_size=256, crop_size=224, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+    assert mean == (0.485, 0.456, 0.406)
+    assert std == (0.229, 0.224, 0.225)
+
     normalize = transforms.Normalize(mean=mean, std=std)
     start_first = 0
     start_center = (resize_size - crop_size - 1) / 2
@@ -121,37 +141,37 @@ def TransformTest(resize_size=256, crop_size=224, mean=[0.485, 0.456, 0.406], st
         ResizeImage(resize_size), ForceFlip(),
         PlaceCrop(crop_size, start_first, start_first),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test1'] = transforms.Compose([
         ResizeImage(resize_size), ForceFlip(),
         PlaceCrop(crop_size, start_last, start_last),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test2'] = transforms.Compose([
         ResizeImage(resize_size), ForceFlip(),
         PlaceCrop(crop_size, start_last, start_first),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test3'] = transforms.Compose([
         ResizeImage(resize_size), ForceFlip(),
         PlaceCrop(crop_size, start_first, start_last),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test4'] = transforms.Compose([
         ResizeImage(resize_size), ForceFlip(),
         PlaceCrop(crop_size, start_center, start_center),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test5'] = transforms.Compose([
         ResizeImage(resize_size),
         PlaceCrop(crop_size, start_first, start_first),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test6'] = transforms.Compose([
         ResizeImage(resize_size),
@@ -163,19 +183,19 @@ def TransformTest(resize_size=256, crop_size=224, mean=[0.485, 0.456, 0.406], st
         ResizeImage(resize_size),
         PlaceCrop(crop_size, start_last, start_first),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test8'] = transforms.Compose([
         ResizeImage(resize_size),
         PlaceCrop(crop_size, start_first, start_last),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     data_transforms['test9'] = transforms.Compose([
         ResizeImage(resize_size),
         PlaceCrop(crop_size, start_center, start_center),
         transforms.ToTensor(),
-        normalize
+        # normalize
     ])
     return data_transforms
 

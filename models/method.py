@@ -7,7 +7,7 @@ import numpy as np
 from torchvision.models import resnet50
 
 class SAM(nn.Module):
-    def __init__(self, network, backbone, projector_dim=args.projector_dim, class_num=200, pretrained=True, pretrained_path=None):
+    def __init__(self, network, backbone, projector_dim, class_num=200, pretrained=True, pretrained_path=None):
         """
         network: the network of the backbone
         backbone: the name of the backbone
@@ -24,7 +24,10 @@ class SAM(nn.Module):
 
         # create the encoders
 
-        self.encoder = network(projector_dim=projector_dim)
+        # self.encoder = network(projector_dim=projector_dim)
+
+        # encoder is just a resnet50
+        self.encoder_q = network(projector_dim=projector_dim)
 
 
         self.load_pretrained(network)
@@ -48,6 +51,9 @@ class SAM(nn.Module):
 
     def forward(self, im_q):
 
+        # featmap_q is the output of the last conv layer
+        # q_f is the pooled output of the last conv layer
+        # q_c is the classification logits, 
         q_c, q_f, featmap_q = self.encoder_q(im_q)
 		
 		
@@ -85,7 +91,8 @@ class SAM(nn.Module):
 
         '''
 
-        return q_f, featmap_q, featcov16, bp_out_feat, self.encoder
+        # return q_f, featmap_q, featcov16, bp_out_feat, self.encoder
+        return q_f, featmap_q, featcov16, bp_out_feat, self.encoder_q
 
     def load_pretrained(self, network):
         if 'resnet' in self.backbone:
@@ -107,7 +114,8 @@ class SAM(nn.Module):
             matrix = featcov16[:,i,:,:]
             matrix = matrix[:,None,:,:]
             matrix = matrix.repeat(1,2048,1,1)
-            PFM = featmap_q*matrix
+            # PFM = featmap_q*matrix
+            PFM = featmap*matrix
             aa = self.avgpool(PFM)
         
 
