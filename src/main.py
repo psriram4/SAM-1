@@ -271,10 +271,11 @@ def test(loader, model, classifier, device):
 
                 # save_image(inputs[j].cpu(), 'test_input_img.png')
 
-                attentions, foreground, background = get_attentions(vits16, normalize(inputs[j]), normalize(inputs[j]),  inputs[j])
+                # attentions, foreground, background = get_attentions(vits16, normalize(inputs[j]), normalize(inputs[j]),  inputs[j])
                 # save_image(foreground.cpu(), 'test_foreground.png')
 
-                foreground = normalize(foreground)
+                # foreground = normalize(foreground)
+
 
                 # 1/0
 
@@ -284,7 +285,7 @@ def test(loader, model, classifier, device):
                 # foreground = normalize(foreground)
                 # background = normalize(background)
 
-                feat, _ = model.inference(foreground.to(device))
+                feat, _ = model.inference(inputs[j])
                 # bg_feat, _ = model.inference(background.to(device))
 
                 # feat = torch.concat((feat, attentions), dim=1)
@@ -357,16 +358,16 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
         orig_img_in = data_labeled[0][3].to(device)
 
         # shuffle images
-        # patch_size = (56, 56)
+        patch_size = (56, 56)
         # patch_size = (64, 64)
         # divide the batch of images into non-overlapping patches
-        # u = nnf.unfold(img_labeled_q, kernel_size=patch_size, stride=patch_size, padding=0)
+        u = nnf.unfold(img_labeled_q, kernel_size=patch_size, stride=patch_size, padding=0)
 
         # print("featmap cam: ", featmapcam.shape)
         # print("u.shpae: ", u.shape)
         # print("u[0] shape: ", u[0].shape)
         
-        # permuted_order = torch.randperm(u[0].shape[-1])
+        permuted_order = torch.randperm(u[0].shape[-1])
 
         # mask_patch = torch.randint(u[0].shape[-1], (u[0].shape[0], patches_masked))
         # print("mask patch: ", mask_patch)
@@ -385,14 +386,14 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
         # print("permuted_order: ", permuted_order)
 
         # permute the patches of each image in the batch
-        # pu = torch.cat([b_[:, permuted_order][None,...] for b_ in u], dim=0)
+        pu = torch.cat([b_[:, permuted_order][None,...] for b_ in u], dim=0)
         # fold the permuted patches back together
-        # f = nnf.fold(pu, img_labeled_q.shape[-2:], kernel_size=patch_size, stride=patch_size, padding=0)
+        f = nnf.fold(pu, img_labeled_q.shape[-2:], kernel_size=patch_size, stride=patch_size, padding=0)
 
         # masked_img_labeled_q = nnf.fold(u, img_labeled_q.shape[-2:], kernel_size=patch_size, stride=patch_size, padding=0)
 
         # print("masked_img_labeleq_q: ", masked_img_labeled_q.shape)
-        
+        # save_image(f.cpu(), "patch_shuffled.png")
         
         # print("f shape; ", f.shape)
 
@@ -426,9 +427,9 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
 
         # print("vit_img in: ", vit_img_in.shape)
         
-        attentions, foreground, background = get_attentions(vits16, vit_img_in, img_labeled_q, orig_img_in)
+        # attentions, foreground, background = get_attentions(vits16, vit_img_in, img_labeled_q, orig_img_in)
 
-        foreground = normalize(foreground)
+        # foreground = normalize(foreground)
         # background = normalize(background)
 
 
@@ -468,14 +469,15 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
         # featcov16 is the predicted attention map
         # feat_labeled is the pooled output of last conv layer
         # featmap_q is the output of last conv layer
-
-        # feat_labeled, featmap_q, featcov16, bp_out_feat, network = model(img_labeled_q)
-
-
-        img_labeled_q = foreground.to(device)
-        # bg_img_labeled_q = background.to(device)
+        img_labeled_q = f.to(device)
 
         feat_labeled, featmap_q, featcov16, bp_out_feat, network = model(img_labeled_q)
+
+
+        # img_labeled_q = foreground.to(device)
+        # bg_img_labeled_q = background.to(device)
+
+        # feat_labeled, featmap_q, featcov16, bp_out_feat, network = model(img_labeled_q)
 
         # bg_feat_labeled, bg_featmap_q, bg_featcov16, bg_bp_out_feat, bg_network = model(bg_img_labeled_q)
 
@@ -628,7 +630,7 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
             predict_cam = (predict_cam/t).float()
 
 
-            loss_cam_labeled_q = F.kl_div(predict_cam.softmax(dim=-1).log(), featmapcam.softmax(dim=-1), reduction='sum')
+            # loss_cam_labeled_q = F.kl_div(predict_cam.softmax(dim=-1).log(), featmapcam.softmax(dim=-1), reduction='sum')
 
 
             # Equivariant regularization loss 
@@ -678,8 +680,8 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
         
         # print("hit")
         # total_loss = classifier_loss + 0.01*loss_cam_labeled_q + 0.01*shuffled_loss_cam_labeled_q
-        total_loss = classifier_loss + 0.01*loss_cam_labeled_q 
-        # total_loss = classifier_loss
+        # total_loss = classifier_loss + 0.01*loss_cam_labeled_q 
+        total_loss = classifier_loss
 
         total_loss.backward(retain_graph=True)
         optimizer.step()
@@ -698,7 +700,7 @@ def train(args, model, classifier, dataset_loaders, optimizer, scheduler, device
             print("iter_num: {}; current acc: {}".format(iter_num, hit_num / float(sample_num)))
 
         ## Show Loss in TensorBoard
-        writer.add_scalar('loss/cam_loss', loss_cam_labeled_q, iter_num)
+        # writer.add_scalar('loss/cam_loss', loss_cam_labeled_q, iter_num)
         writer.add_scalar('loss/classifier_loss', classifier_loss, iter_num)
         writer.add_scalar('loss/total_loss', total_loss, iter_num)
         

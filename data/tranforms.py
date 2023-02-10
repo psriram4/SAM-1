@@ -73,12 +73,12 @@ class TransformTrain(object):
             transforms.RandomResizedCrop(crop_size),
             transforms.RandomHorizontalFlip(),
             RandAugmentMC(n=2, m=10)])
-        # self.normalize = transforms.Compose([
-        #     transforms.ToTensor(),
-        #     transforms.Normalize(mean=mean, std=std)])
-
         self.normalize = transforms.Compose([
-            transforms.ToTensor()])
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)])
+
+        # self.normalize = transforms.Compose([
+        #     transforms.ToTensor()])
         
         self.dummy = transforms.Compose([
             ResizeImage(resize_size),
